@@ -147,10 +147,25 @@ public class GroupManagementController {
     }
 
 @PostMapping
-    public ResponseEntity<?> createGroup(@Valid @RequestBody CreateGroupRequestDto requestDto) {
+    public ResponseEntity<?> createGroup(@Valid @RequestBody CreateGroupRequestDto requestDto, BindingResult bindingResult) {
         try {
             logger.info("🔵 [CREATE GROUP] Received request: {}", requestDto);
-            
+
+            if (bindingResult.hasErrors()) {
+                List<Map<String, Object>> errors = bindingResult.getFieldErrors().stream()
+                        .map(error -> Map.<String, Object>of(
+                                "field", error.getField(),
+                                "message", error.getDefaultMessage()))
+                        .collect(Collectors.toList());
+
+                logger.warn("❌ [CREATE GROUP] Validation failed: {}", errors);
+                return ResponseEntity.badRequest().body(Map.of(
+                        "error", "Validation error",
+                        "message", "Invalid group creation request",
+                        "details", errors
+                ));
+            }
+
             // Extract Group data from request DTO
             Group group = new Group();
             group.setGroupName(requestDto.getGroupName());
@@ -434,6 +449,11 @@ public class GroupManagementController {
     // GroupMember endpoints
     @GetMapping("/{groupId}/members")
     public List<GroupMember> getGroupMembers(@PathVariable Integer groupId) {
+        // Check if group exists
+        Optional<Group> groupOpt = groupRepository.findById(groupId);
+        if (groupOpt.isEmpty()) {
+            throw new IllegalArgumentException("Group not found with ID: " + groupId);
+        }
         return groupMemberRepository.findByGroup_GroupId(groupId);
     }
 
@@ -866,6 +886,11 @@ public class GroupManagementController {
     // Voting endpoints
     @GetMapping("/{groupId}/votes")
     public List<Voting> getGroupVotes(@PathVariable Integer groupId) {
+        // Check if group exists
+        Optional<Group> groupOpt = groupRepository.findById(groupId);
+        if (groupOpt.isEmpty()) {
+            throw new IllegalArgumentException("Group not found with ID: " + groupId);
+        }
         return votingRepository.findByGroup_GroupId(groupId);
     }
 
@@ -1108,6 +1133,16 @@ public class GroupManagementController {
     public ResponseEntity<?> viewGroupMembers(@PathVariable Integer groupId) {
         try {
             logger.info("🔵 [GroupManagementController] GET /api/groups/{}/members/view", groupId);
+            
+            // Check if group exists
+            Optional<Group> groupOpt = groupRepository.findById(groupId);
+            if (groupOpt.isEmpty()) {
+                logger.warn("❌ [GroupManagementController] Group {} not found", groupId);
+                return ResponseEntity.status(404).body(Map.of(
+                    "error", "Group not found",
+                    "message", "Nhóm ID " + groupId + " không tồn tại"
+                ));
+            }
             
             List<GroupMember> members = groupMemberRepository.findByGroup_GroupId(groupId);
             
@@ -1621,6 +1656,16 @@ public class GroupManagementController {
     public ResponseEntity<?> getContractsByGroup(@PathVariable Integer groupId,
                                                  @RequestParam(name = "userId", required = false) Integer userId) {
         try {
+            // Check if group exists
+            Optional<Group> groupOpt = groupRepository.findById(groupId);
+            if (groupOpt.isEmpty()) {
+                logger.warn("❌ [GroupManagementController] Group {} not found", groupId);
+                return ResponseEntity.status(404).body(Map.of(
+                    "error", "Group not found",
+                    "message", "Nhóm ID " + groupId + " không tồn tại"
+                ));
+            }
+            
             List<GroupContract> contracts = groupContractRepository.findByGroup_GroupId(groupId);
             if (contracts.isEmpty()) {
                 return ResponseEntity.ok(List.of());
@@ -1672,14 +1717,16 @@ public class GroupManagementController {
 
         try {
             Integer createdBy = requestDto.getCreatedBy();
-            String contractCode = requestDto.getContractCode().trim();
+            String contractCode = requestDto.getContractCode() != null && !requestDto.getContractCode().trim().isEmpty()
+                    ? requestDto.getContractCode().trim()
+                    : null; // Will be auto-generated later if null
             String contractContent = requestDto.getContractContent().trim();
             String contractStatus = requestDto.getContractStatus() != null 
                     ? requestDto.getContractStatus().trim() 
                     : "pending";
 
             logger.info("🔵 [GroupManagementController] POST /api/groups/{}/contracts", groupId);
-            logger.info("   createdBy: {}, contractCode: {}", createdBy, contractCode);
+            logger.info("   createdBy: {}, contractCode: {} (will auto-generate if empty)", createdBy, contractCode);
 
             // ============ BUG 1 FIX: Already handled by @NotBlank annotation ============
             if (contractContent == null || contractContent.isEmpty()) {
@@ -1724,6 +1771,12 @@ public class GroupManagementController {
                     "field", "createdBy",
                     "code", "USER_NOT_MEMBER"
                 ));
+            }
+
+            // ============ AUTO-GENERATE contractCode if empty ============
+            if (contractCode == null || contractCode.trim().isEmpty()) {
+                contractCode = generateUniqueContractCode(group);
+                logger.info("📝 [GroupManagementController] Auto-generated contractCode: {}", contractCode);
             }
 
             // ============ BUG 3 FIX: Check contractCode uniqueness ============

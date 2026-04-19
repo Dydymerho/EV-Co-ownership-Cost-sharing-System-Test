@@ -12,9 +12,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class CreateGroupContractDto {
 
-    @NotBlank(message = "contractCode không được để trống")
     @Size(max = 100, message = "contractCode không được vượt quá 100 ký tự")
-    private String contractCode;
+    private String contractCode; // Optional - will be auto-generated if empty
 
     @NotBlank(message = "contractContent không được để trống")
     @Size(max = 65535, message = "Nội dung hợp đồng quá dài (max 65.535 ký tự)")

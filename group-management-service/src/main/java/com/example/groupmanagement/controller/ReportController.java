@@ -112,6 +112,12 @@ public class ReportController {
         try {
             logger.info("Getting voting report for groupId={}", groupId);
             
+            // Check if group exists
+            Optional<Group> groupOpt = groupRepository.findById(groupId);
+            if (!groupOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
+            
             List<Voting> votings = votingRepository.findByGroup_GroupId(groupId);
             
             List<Map<String, Object>> votingReports = votings.stream()
@@ -166,6 +172,12 @@ public class ReportController {
     public ResponseEntity<?> getGroupMembersReport(@PathVariable Integer groupId) {
         try {
             logger.info("Getting members report for groupId={}", groupId);
+            
+            // Check if group exists
+            Optional<Group> groupOpt = groupRepository.findById(groupId);
+            if (!groupOpt.isPresent()) {
+                return ResponseEntity.notFound().build();
+            }
             
             List<GroupMember> members = groupMemberRepository.findByGroup_GroupId(groupId);
             

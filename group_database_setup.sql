@@ -39,6 +39,7 @@ CREATE TABLE `Group` (
     groupId INT AUTO_INCREMENT PRIMARY KEY,
     groupName VARCHAR(100) NOT NULL,
     adminId INT NULL,
+    vehicleId INT NULL,
     createdAt DATETIME DEFAULT CURRENT_TIMESTAMP,
     status ENUM('Active', 'Inactive') DEFAULT 'Active'
 );
@@ -332,7 +333,7 @@ INSERT INTO GroupFund (groupId, totalContributed, currentBalance, note) VALUES
 (77, 10000000.0, 10000000.0, 'Quỹ nhóm 077'),
 (78, 10000000.0, 10000000.0, 'Quỹ nhóm 078'),
 (79, 10000000.0, 10000000.0, 'Quỹ nhóm 079'),
-80: (80, 10000000.0, 10000000.0, 'Quỹ nhóm 080'),
+(80, 10000000.0, 10000000.0, 'Quỹ nhóm 080'),
 (81, 10000000.0, 10000000.0, 'Quỹ nhóm 081'),
 (82, 10000000.0, 10000000.0, 'Quỹ nhóm 082'),
 (83, 10000000.0, 10000000.0, 'Quỹ nhóm 083'),
